@@ -10,8 +10,13 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "chromadb>=1.4.1",
+    "dotenv>=0.9.9",
     "langchain>=1.2.6",
+    "langchain-chroma>=1.1.0",
+    "langchain-community>=0.4.1",
+    "langchain-groq>=1.1.1",
     "pypdf>=6.6.0",
+    "sentence-transformers>=5.2.0",
 ]
 license = {text = "MIT"}
 authors = [
