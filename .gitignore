@@ -15,6 +15,7 @@ reports/
 logs/
 .env
 *.excalidraw
+*.json
 
 # Testing
 .coverage
