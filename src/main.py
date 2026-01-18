@@ -2,12 +2,62 @@
 Punto de entrada para hablar con causalito.
 """
 
+from cli import interactive_loop
+from agent.rag_agent import RAGAgent
+from agent.prompt_builder import PromptBuilder
+from retrieval.retriever import Retriever
+from vectorstore.chroma_repository import ChromaRepository
+from indexing.embedders.sentence_transformers_embedder import (
+    SentenceTransformersEmbedder,
+)
+from llm.qroq_llm import GroqLLM
+from config.settings import CHROMA_PERSIST_DIR
 
-def main():
+
+def build_agent() -> RAGAgent:
     """
-    Función principal para iniciar la conversación con causalito.
+    Se encarga de construir y configurar el agente RAG completo.
+
+    :return: Agente inicializado
+    :rtype: RAGAgent
     """
-    print("Soy un experto en inferencia bayesiana causal y estoy aquí para ayudarte.")
+    # Embeddings
+    embedder = SentenceTransformersEmbedder()
+
+    # Vector store (repository)
+    repository = ChromaRepository(
+        persist_dir=str(CHROMA_PERSIST_DIR),
+        embedder=embedder,
+    )
+
+    # Retriever
+    retriever = Retriever(
+        repository=repository,
+        k=15,  
+        min_score=0.1,
+        require_multiple_sources=False
+    )
+
+    # LLM
+    llm = GroqLLM()
+
+    # Prompt builder
+    prompt_builder = PromptBuilder()
+
+    # Agent
+    return RAGAgent(
+        retriever=retriever,
+        llm=llm,
+        prompt_builder=prompt_builder,
+    )
+
+
+def main() -> None:
+    """
+    Punto de entrada principal para ejecutar el agente RAG en un bucle interactivo.
+    """
+    agent = build_agent()
+    interactive_loop(agent)
 
 
 if __name__ == "__main__":
