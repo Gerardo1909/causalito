@@ -21,12 +21,11 @@ class RAGAgent:
 
     def answer(self, question: str) -> Tuple[str, List[str]]:
         """
-        Docstring for answer
+        Genera una respuesta a una pregunta utilizando documentos recuperados por el retriever.
 
-        :param self: Description
-        :param question: Description
+        :param question: Consulta realizada por el usuario.
         :type question: str
-        :return: Description
+        :return: Respuesta generada y lista de fuentes utilizadas.
         :rtype: Tuple[str, list[str]]
         """
         docs, sources = self.retriever.retrieve(question)
