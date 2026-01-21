@@ -1,8 +1,7 @@
 """
-Punto de entrada para hablar con causalito.
+Punto de entrada para inicializar a causalito.
 """
 
-from cli import interactive_loop
 from agent.rag_agent import RAGAgent
 from agent.prompt_builder import PromptBuilder
 from retrieval.retriever import Retriever
@@ -32,10 +31,7 @@ def build_agent() -> RAGAgent:
 
     # Retriever
     retriever = Retriever(
-        repository=repository,
-        k=15,  
-        min_score=0.1,
-        require_multiple_sources=False
+        repository=repository, k=15, min_score=0.1, require_multiple_sources=False
     )
 
     # LLM
@@ -50,15 +46,3 @@ def build_agent() -> RAGAgent:
         llm=llm,
         prompt_builder=prompt_builder,
     )
-
-
-def main() -> None:
-    """
-    Punto de entrada principal para ejecutar el agente RAG en un bucle interactivo.
-    """
-    agent = build_agent()
-    interactive_loop(agent)
-
-
-if __name__ == "__main__":
-    main()
