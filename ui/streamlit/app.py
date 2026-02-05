@@ -1,17 +1,6 @@
-"""
-Punto de entrada para UI Streamlit del agente RAG.
-"""
-
 import streamlit as st
-
-from main import build_agent
 from agent.rag_agent import RAGAgent
-from components import (
-    init_chat_state,
-    render_chat_history,
-    append_user_message,
-    append_assistant_message,
-)
+from main import build_agent
 
 
 @st.cache_resource
@@ -20,34 +9,77 @@ def get_agent() -> RAGAgent:
 
 
 st.set_page_config(
-    page_title="Causalito | Agente RAG 🅱️",
-    layout="wide",
+    page_title="Causalito | RAG",
+    page_icon="📊",
+    layout="centered",
 )
 
-st.title("🅱️ Causalito — Inferencia Causal Bayesiana")
+# Sidebar
+with st.sidebar:
+    st.header("Causalito")
+    st.caption("Agente RAG para inferencia causal bayesiana")
+    if st.button("Limpiar conversacion"):
+        st.session_state.messages = []
+        st.rerun()
+    st.divider()
+    st.markdown("**Fuentes:** PDFs academicos indexados")
 
-init_chat_state()
-render_chat_history()
+st.title("Causalito")
 
-question = st.chat_input("Haz una pregunta sobre inferencia causal...")
+# Estado inicial con mensaje de bienvenida
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "Hola, soy Causalito. Puedo responder preguntas sobre inferencia causal bayesiana basandome en bibliografia academica. ¿En que puedo ayudarte?",
+            "sources": [],
+        }
+    ]
 
-if question:
-    append_user_message(question)
+# Render historial
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+        if msg["role"] == "assistant" and msg.get("sources"):
+            with st.expander("Fuentes"):
+                for s in msg["sources"]:
+                    st.markdown(f"- {s}")
+
+# Input
+if question := st.chat_input("Pregunta sobre inferencia causal..."):
+    # Mostrar mensaje usuario inmediatamente
+    st.session_state.messages.append({"role": "user", "content": question})
+    st.chat_message("user").markdown(question)
 
     with st.chat_message("assistant"):
-        with st.spinner("Razonando..."):
+        # Mostrar status del retrieval
+        with st.status("Buscando contexto relevante...", expanded=False) as status:
             try:
-                answer, sources = get_agent().answer(question)
+                agent = get_agent()
+                docs, sources = agent.retriever.retrieve(question)
+                status.update(
+                    label=f"Recuperados {len(docs)} fragmentos de {len(sources)} fuentes"
+                )
+
+                if docs:
+                    prompt = agent.prompt_builder.build(question, docs)
+                    answer = agent.llm.generate(prompt)
+                else:
+                    answer = (
+                        "No encontre informacion relevante en los documentos indexados."
+                    )
+                    sources = []
             except Exception as e:
-                answer = "Lo siento, ha ocurrido un error al procesar tu pregunta."
+                answer = f"Error al procesar: {str(e)}"
                 sources = []
-                st.error(f"Error: {e}")
+                status.update(label="Error", state="error")
 
         st.markdown(answer)
-
         if sources:
-            with st.expander("📚 Fuentes"):
+            with st.expander("Fuentes"):
                 for s in sources:
-                    st.markdown(f"- **{s}**")
+                    st.markdown(f"- {s}")
 
-    append_assistant_message(answer, sources)
+    st.session_state.messages.append(
+        {"role": "assistant", "content": answer, "sources": sources}
+    )
