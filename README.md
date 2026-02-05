@@ -36,13 +36,20 @@ A continuación se presenta documentación detallada del proyecto presente en el
 - [docs/testing.md](docs/testing.md): Estrategia de pruebas, ubicación de tests unitarios/integación y cómo ejecutar la suite (`pytest`).
 
 
-## Ejemplo interactivo
+## Interfaz de usuario
 
-Abajo se muestra un ejemplo de interacción típica en terminal: se hace una pregunta y el agente responde utilizando únicamente el contexto indexado:
+Causalito cuenta con una interfaz web implementada en Streamlit que permite interactuar con el agente de forma intuitiva y conversacional:
 
 ![Ejemplo de interacción del agente](resources/pregunta_principal.png)
 
-*Descripción:* la captura muestra la pregunta en el prompt, la respuesta generada (resumen con énfasis en conceptos clave) y la lista de fuentes citadas.
+**Descripción:** La interfaz muestra una conversación donde el usuario pregunta "¿Qué es una red bayesiana?" y el agente responde con una explicación detallada basada en el contenido indexado. La respuesta incluye definiciones claras del concepto (red bayesiana como modelo probabilístico con grafo dirigido acíclico), sus componentes principales (nodos y arcos dirigidos) y las propiedades estructurales relevantes (independencias condicionales).
+
+**Estructura de la interfaz:**
+- **Panel principal:** área de chat conversacional con historial de mensajes persistente entre preguntas.
+- **Input de usuario:** campo de texto en la parte inferior para formular consultas en lenguaje natural.
+- **Respuestas del agente:** texto formateado con markdown que sintetiza información del corpus indexado.
+- **Indicador de recuperación:** feedback visual que muestra el número de fragmentos y fuentes consultadas durante el proceso de retrieval.
+- **Panel de fuentes:** sección expandible que lista los documentos académicos de donde se extrajo la información, permitiendo trazabilidad completa de las respuestas.
 
 ## Limitaciones
 
@@ -50,13 +57,18 @@ Abajo se muestra un ejemplo de interacción típica en terminal: se hace una pre
 - Las heurísticas de limpieza (`TextCleaner`) pueden necesitar ajustes para colecciones con formatos muy heterogéneos.
 - No existe verificación externa automática de veracidad — el agente se limita a sintetizar lo presente en los documentos. Recomendamos validación humana para uso crítico.
 
-## Posibles extensiones y mejoras a futuro
+## Mejoras a implementar
 
-- Soporte para múltiples modelos de embeddings y selección automática según dominio.
-- Reranking por segundo paso (BM25 o LLM-based) para mejorar precisión en las primeras posiciones.
-- Deduplicación semántica avanzada y políticas de retención/compactación del índice.
-- Soporte multi-turno y manejo de historial conversacional en el agente.
-- Integración de trazabilidad extendida (hashes de documentos, control de versiones del índice).
+Las siguientes mejoras están planificadas para fortalecer las capacidades del agente RAG sin requerir cambios en los modelos de embedding o LLM base:
+
+| Mejora | Impacto | Esfuerzo | Justificación |
+|--------|---------|----------|---------------|
+| **Multi-query retrieval** | Alto | Bajo | Genera variaciones de la consulta original para aumentar recall. LangChain proporciona `MultiQueryRetriever` listo para usar, que automáticamente reformula queries y combina resultados, mejorando cobertura sin afectar latencia significativamente. |
+| **Contextual compression** | Alto | Medio | Filtra cada chunk recuperado para extraer solo las partes relevantes a la query antes de enviarlas al LLM. Reduce ruido en el contexto y permite aprovechar mejor la ventana del modelo, mejorando precisión de respuestas sin aumentar chunks recuperados. |
+| **Memoria conversacional** | Medio | Bajo | Implementar `ConversationBufferMemory` de LangChain para mantener contexto de los últimos N turnos. Permite follow-up questions y referencias anafóricas ("explícame más sobre eso"), mejorando naturalidad sin cambiar arquitectura core. |
+| **Hybrid search (BM25 + vector)** | Alto | Medio | Combina búsqueda léxica (BM25) con semántica (embeddings) usando `EnsembleRetriever`. Captura tanto coincidencias exactas de términos técnicos como similitud conceptual, incrementando recall especialmente en queries con terminología específica del dominio. |
+| **Parent document retriever** | Medio | Medio | Indexa chunks pequeños (mejor precision en matching) pero recupera documentos padres más grandes (mejor contexto para el LLM). Balancea granularidad de búsqueda con riqueza de contexto, útil cuando chunks atómicos pierden coherencia narrativa. |
+| **Reranking con Cross-Encoder** | Alto | Bajo | Aplica modelo bi-direccional (cross-encoder) sobre top-k candidatos del retriever para reordenar por relevancia real. Mejora significativamente precisión en primeras posiciones con overhead aceptable (solo procesa k candidatos, no todo el corpus). |
 
 ---
 
