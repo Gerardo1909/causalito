@@ -1,0 +1,53 @@
+# Stage 1: Builder
+FROM python:3.13-slim AS builder
+
+# Forma limpia y recomendada de inyectar uv en Docker
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /build
+
+# 1. Copiamos solo los archivos de configuración primero
+COPY pyproject.toml uv.lock README.md ./
+
+# 2. Instalamos dependencias
+RUN uv sync --no-install-project
+
+# 3. Ahora sí copiamos el código
+COPY src/ ./src/
+
+# 4. Sincronizamos el proyecto.
+# Usamos --no-editable. De no usarse, uv crea un enlace simbólico
+# a /build/src. Al copiar el .venv al stage 2, ese enlace se rompería.
+RUN uv sync --no-editable
+
+# Stage 2: Runtime
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Instalar solo lo estrictamente necesario para producción
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    curl && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r causalito && useradd -r -g causalito causalito
+
+# Copiamos el ENTORNO VIRTUAL completo ya construido
+COPY --from=builder /build/.venv /app/.venv
+
+# Copiamos las carpetas de trabajo
+COPY --chown=causalito:causalito src/ ./src/
+COPY --chown=causalito:causalito data/ ./data/
+
+# Agregamos el binario del entorno virtual al PATH
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    GROQ_API_KEY="" \
+    CHROMA_DB_PATH="/app/data/chroma_db" \
+    LOG_LEVEL="INFO"
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+
+USER causalito
