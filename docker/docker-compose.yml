@@ -1,0 +1,26 @@
+services:
+    prod:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile.prod
+        container_name: causalito-prod
+        image: causalito:prod
+        restart: unless-stopped
+        ports:
+            - "8501:8501"
+        environment:
+            GROQ_API_KEY: ${GROQ_API_KEY:-}
+        volumes:
+            - ../data:/app/data
+
+    dev:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile.dev
+        container_name: causalito-dev
+        image: causalito:dev
+        environment:
+            LOG_LEVEL: "DEBUG"
+            GROQ_API_KEY: ${GROQ_API_KEY:-}
+        volumes:
+            - ..:/app
