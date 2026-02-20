@@ -2,15 +2,16 @@
 Punto de entrada para inicializar a causalito.
 """
 
-from agent.rag_agent import RAGAgent
 from agent.prompt_builder import PromptBuilder
-from retrieval.retriever import Retriever
-from vectorstore.chroma_repository import ChromaRepository
+from agent.rag_agent import RAGAgent
+from confidence.feature_extractor import FeatureLogger
+from config.settings import CHROMA_PERSIST_DIR, DATA_DIR
 from indexing.embedders.sentence_transformers_embedder import (
     SentenceTransformersEmbedder,
 )
 from llm.qroq_llm import GroqLLM
-from config.settings import CHROMA_PERSIST_DIR
+from retrieval.retriever import Retriever
+from vectorstore.chroma_repository import ChromaRepository
 
 
 def build_agent() -> RAGAgent:
@@ -22,6 +23,7 @@ def build_agent() -> RAGAgent:
     """
     # Embeddings
     embedder = SentenceTransformersEmbedder()
+    feature_logger = FeatureLogger(DATA_DIR / "eval_log.csv")
 
     # Vector store (repository)
     repository = ChromaRepository(
@@ -31,7 +33,11 @@ def build_agent() -> RAGAgent:
 
     # Retriever
     retriever = Retriever(
-        repository=repository, k=15, min_score=0.1, require_multiple_sources=False
+        repository=repository,
+        k=15,
+        min_score=0.1,
+        require_multiple_sources=False,
+        feature_logger=feature_logger,
     )
 
     # LLM
