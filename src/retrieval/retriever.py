@@ -30,14 +30,15 @@ class Retriever:
         self.feature_logger = feature_logger
         self._extractor = RetrievalFeatureExtractor()
 
-    def retrieve(self, query: str) -> Tuple[List[str], List[str]]:
+    def retrieve(self, query: str) -> Tuple[List[str], List[str], List[float]]:
         """
-        Función que recupera documentos similares a una consulta dada.
+        Recupera documentos similares a una consulta dada.
 
         :param query: Consulta hecha hacia el retriever.
         :type query: str
-        :return: Tupla con dos listas, la primera con los documentos recuperados y la segunda con las fuentes de dichos documentos.
-        :rtype: Tuple[List[str], List[str]]
+        :return: Tupla con tres listas: documentos recuperados, fuentes de dichos documentos
+                 y scores de similitud correspondientes a los documentos filtrados.
+        :rtype: Tuple[List[str], List[str], List[float]]
         """
 
         results = self.repository.similarity_search(query, k=self.k)
@@ -46,9 +47,9 @@ class Retriever:
         docs_with_scores = [(doc, score) for doc, score in results]
 
         # Extraer features ANTES de filtrar (captura el retrieval completo)
-        scores = [score for _, score in docs_with_scores]
+        all_scores = [score for _, score in docs_with_scores]
         features = self._extractor.extract(
-            query, [doc for doc, _ in docs_with_scores], scores
+            query, [doc for doc, _ in docs_with_scores], all_scores
         )
 
         # Loguear features si el logger está disponible
@@ -56,11 +57,16 @@ class Retriever:
             self.feature_logger.log(features)
 
         # Se procede con filtros originales
-        filtered = [doc for doc, score in results if score >= self.min_score]
+        filtered_with_scores = [
+            (doc, score) for doc, score in results if score >= self.min_score
+        ]
+        filtered = [doc for doc, _ in filtered_with_scores]
+        filtered_scores = [score for _, score in filtered_with_scores]
+
         sources = [os.path.basename(doc.metadata.get("source", "")) for doc in filtered]
         sources = list(set(sources))
 
         if self.require_multiple_sources and len(sources) < 2:
-            return [], []
+            return [], [], []
 
-        return filtered, sources
+        return filtered, sources, filtered_scores
