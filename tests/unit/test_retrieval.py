@@ -3,8 +3,9 @@ Módulo que contiene casos de prueba para el retriever de documentos.
 """
 
 import pytest
-from retrieval.retriever import Retriever
 from helpers import make_document, mock_vectorstore
+
+from retrieval.retriever import Retriever
 
 
 @pytest.mark.unit
@@ -26,7 +27,7 @@ class TestRetrieverBehavior:
         retriever = Retriever(
             repository=repo, k=2, min_score=0.2, require_multiple_sources=False
         )
-        docs, sources = retriever.retrieve("query")
+        docs, sources, scores = retriever.retrieve("query")
 
         soft_assert(len(docs) == 1)
         soft_assert(docs[0].page_content == "A")
@@ -42,7 +43,7 @@ class TestRetrieverBehavior:
         retriever = Retriever(
             repository=repo, k=2, min_score=0.2, require_multiple_sources=True
         )
-        docs, sources = retriever.retrieve("query")
+        docs, sources, scores = retriever.retrieve("query")
 
         soft_assert(docs == [])
         soft_assert(sources == [])
