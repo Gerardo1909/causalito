@@ -13,9 +13,10 @@ Este proyecto **busca ser una herramienta confiable** y accesible para quienes r
 ## Beneficios clave
 
 - **Respuestas fundamentadas:** el agente combina recuperación de texto con generación (RAG) para proporcionar respuestas ancladas en documentos académicos.
+- **Confianza calibrada:** un motor bayesiano Beta-Binomial estima la probabilidad de que cada respuesta sea correcta y decide si responder o abstenerse, reduciendo el riesgo de entregar información incorrecta.
 - **Trazabilidad:** cada fragmento recuperado se asocia a su fuente, facilitando la verificación y citación de las respuestas.
 - **Reproducibilidad:** indexado persistente con Chroma y IDs estables permiten reproducir búsquedas y evitar reindexados innecesarios.
-- **Extensibilidad:** arquitectura por módulos (loaders, chunkers, embedders, vectorstore, retriever, llm, agent) facilita sustituir componentes o adaptar el sistema a nuevas colecciones y modelos.
+- **Extensibilidad:** arquitectura por módulos (loaders, chunkers, embedders, vectorstore, retriever, llm, agent, confidence) facilita sustituir componentes o adaptar el sistema a nuevas colecciones y modelos.
 
 ## A quién ayuda
 
@@ -32,7 +33,8 @@ A continuación se presenta documentación detallada del proyecto presente en el
 - [docs/indexing.md](docs/indexing.md): Chunking, estrategia de IDs (`ChunkIdStrategy`) y el `IndexingService` que orquesta la creación de embeddings e inserción en el vectorstore.
 - [docs/retrieval.md](docs/retrieval.md): Lógica de recuperación desde el vector store, filtrado por `min_score`, control de `k` y manejo de fuentes.
 - [docs/vectorstore.md](docs/vectorstore.md): Interfaz `VectorRepository` e implementación `ChromaRepository` — persistencia, gestión de IDs y operaciones CRUD sobre vectores.
-- [docs/agent.md](docs/agent.md): Funcionamiento del `RAGAgent`, diseño de prompts y cómo se coordinan retrieval + LLM para generar respuestas trazables.
+- [docs/agent.md](docs/agent.md): Funcionamiento del `RAGAgent`, diseño de prompts y cómo se coordinan retrieval + LLM + confianza para generar respuestas trazables.
+- [docs/confidence.md](docs/confidence.md): Motor de confianza bayesiano — modelo Beta-Binomial, clasificación high/low, mecanismo de abstención y flujo de entrenamiento offline.
 - [docs/testing.md](docs/testing.md): Estrategia de pruebas, ubicación de tests unitarios/integación y cómo ejecutar la suite (`pytest`).
 
 
@@ -56,6 +58,7 @@ Causalito cuenta con una interfaz web implementada en Streamlit que permite inte
 - La calidad de las respuestas depende directamente de la cobertura y la calidad de los documentos indexados y del modelo de embeddings/LLM elegido.
 - Las heurísticas de limpieza (`TextCleaner`) pueden necesitar ajustes para colecciones con formatos muy heterogéneos.
 - No existe verificación externa automática de veracidad — el agente se limita a sintetizar lo presente en los documentos. Recomendamos validación humana para uso crítico.
+- La calibración del motor de confianza requiere datos etiquetados manualmente. Sin ellos, el motor opera con posteriors neutrales Beta(1, 1) y se abstiene sistemáticamente.
 
 ## Mejoras a implementar
 
