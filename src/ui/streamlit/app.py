@@ -56,7 +56,7 @@ if question := st.chat_input("Pregunta sobre inferencia causal..."):
         with st.status("Buscando contexto relevante...", expanded=False) as status:
             try:
                 agent = get_agent()
-                docs, sources = agent.retriever.retrieve(question)
+                docs, sources, scores = agent.retriever.retrieve(question)
                 status.update(
                     label=f"Recuperados {len(docs)} fragmentos de {len(sources)} fuentes"
                 )
