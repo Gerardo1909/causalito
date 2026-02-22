@@ -1,5 +1,6 @@
 """
-Módulo encargado de
+Módulo encargado de analizar datos etiquetados y producir estimaciones
+bayesianas sobre la probabilidad de respuesta correcta por grupo de confianza.
 """
 
 from dataclasses import dataclass
@@ -26,7 +27,6 @@ class ConfidenceGroupAnalysis:
 
     # Estadísticas descriptivas
     accuracy: float
-    precision: float
 
     def summary(self) -> str:
         """Retorna resumen legible."""
@@ -113,7 +113,6 @@ class DataAnalyzer:
                 confidence_threshold=f"mean_sim >= {high_conf_threshold}, sources >= {min_sources}",
                 inference_result=result_high,
                 accuracy=float(acc_high),
-                precision=float(acc_high),
             ),
             ConfidenceGroupAnalysis(
                 group_name="LOW CONFIDENCE",
@@ -121,16 +120,14 @@ class DataAnalyzer:
                 confidence_threshold=f"mean_sim < {high_conf_threshold} OR sources < {min_sources}",
                 inference_result=result_low,
                 accuracy=float(acc_low),
-                precision=float(acc_low),
             ),
         )
 
-    def _default_result(self) -> BayesianInferenceResult:
+    @staticmethod
+    def _default_result() -> BayesianInferenceResult:
         """
         Retorna resultado neutro cuando no hay datos.
         """
-        from confidence.bayesian_model import BayesianInferenceResult
-
         return BayesianInferenceResult(
             alpha_posterior=1.0,
             beta_posterior=1.0,

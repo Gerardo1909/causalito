@@ -51,16 +51,22 @@ class TestRagAgentOrchestration:
         Verifica si el retriever no devuelve documentos, el agente debe devolver mensaje de fallback y lista vacía.
         """
         retriever = MagicMock()
-        retriever.retrieve.return_value = ([], [])
+        retriever.retrieve.return_value = ([], [], [])
         llm = MagicMock()
         builder = PromptBuilder()
 
-        agent = RAGAgent(retriever=retriever, llm=llm, prompt_builder=builder)
-        resp, sources = agent.answer("Una pregunta cualquiera")
+        agent = RAGAgent(
+            retriever=retriever,
+            llm=llm,
+            prompt_builder=builder,
+            confidence_engine=None,
+        )
+        resp, sources, confidence_result = agent.answer("Una pregunta cualquiera")
 
         soft_assert(isinstance(resp, str))
         soft_assert(resp.startswith("No hay suficiente información"))
         soft_assert(sources == [])
+        soft_assert(confidence_result is None)
 
     def test_rag_agent_should_build_prompt_and_call_llm_when_docs_present(self):
         """
@@ -68,20 +74,25 @@ class TestRagAgentOrchestration:
         """
         docs = [make_document("texto útil", source="s")]
         retriever = MagicMock()
-        retriever.retrieve.return_value = (docs, ["s"])
+        retriever.retrieve.return_value = (docs, ["s"], [0.85])
 
         expected_text = "LLM answer"
         llm = mock_llm_response(expected_text)
 
-        # spy builder to capture the prompt passed
         builder = PromptBuilder()
 
-        agent = RAGAgent(retriever=retriever, llm=llm, prompt_builder=builder)
-        result_text, result_sources = agent.answer("Pregunta")
+        agent = RAGAgent(
+            retriever=retriever,
+            llm=llm,
+            prompt_builder=builder,
+            confidence_engine=None,
+        )
+        result_text, result_sources, confidence_result = agent.answer("Pregunta")
 
         check.is_instance(result_text, str)
         check.equal(result_text, expected_text)
         check.equal(result_sources, ["s"])
+        check.is_none(confidence_result)
 
     def test_rag_agent_should_propagate_llm_errors(self):
         """
@@ -89,12 +100,17 @@ class TestRagAgentOrchestration:
         """
         docs = [make_document("texto", source="s")]
         retriever = MagicMock()
-        retriever.retrieve.return_value = (docs, ["s"])
+        retriever.retrieve.return_value = (docs, ["s"], [0.85])
 
         llm = MagicMock()
         llm.generate.side_effect = RuntimeError("LLM failed")
 
-        agent = RAGAgent(retriever=retriever, llm=llm, prompt_builder=PromptBuilder())
+        agent = RAGAgent(
+            retriever=retriever,
+            llm=llm,
+            prompt_builder=PromptBuilder(),
+            confidence_engine=None,
+        )
 
         with pytest.raises(RuntimeError):
             agent.answer("Pregunta que falla")

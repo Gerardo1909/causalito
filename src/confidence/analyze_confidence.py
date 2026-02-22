@@ -25,7 +25,7 @@ def main():
     args = parser.parse_args()
 
     if not args.csv_path.exists():
-        print(f"❌ No se encontró: {args.csv_path}")
+        print(f"[ERROR] No se encontró: {args.csv_path}")
         print("Primero ejecuta la aplicación para generar datos.")
         return
 
