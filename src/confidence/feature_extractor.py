@@ -1,3 +1,8 @@
+"""
+Módulo que se encarga de la obtención de métricas del retriever para
+analizar desempeño del agente.
+"""
+
 import csv
 from dataclasses import asdict, dataclass
 from datetime import datetime
