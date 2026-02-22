@@ -4,6 +4,7 @@ Punto de entrada para inicializar a causalito.
 
 from agent.prompt_builder import PromptBuilder
 from agent.rag_agent import RAGAgent
+from confidence.confidence_engine import ConfidenceEngine
 from confidence.feature_extractor import FeatureLogger
 from config.settings import CHROMA_PERSIST_DIR, DATA_DIR
 from indexing.embedders.sentence_transformers_embedder import (
@@ -21,9 +22,13 @@ def build_agent() -> RAGAgent:
     :return: Agente inicializado
     :rtype: RAGAgent
     """
+
+    eval_data = DATA_DIR / "eval_log.csv"
+
+    feature_logger = FeatureLogger(eval_data)
+
     # Embeddings
     embedder = SentenceTransformersEmbedder()
-    feature_logger = FeatureLogger(DATA_DIR / "eval_log.csv")
 
     # Vector store (repository)
     repository = ChromaRepository(
@@ -46,9 +51,21 @@ def build_agent() -> RAGAgent:
     # Prompt builder
     prompt_builder = PromptBuilder()
 
+    confidence_engine = None
+    try:
+        confidence_engine = ConfidenceEngine.from_csv(
+            str(eval_data),
+            high_conf_threshold=0.75,
+            min_sources=2,
+            abstention_threshold=0.8,
+        )
+    except Exception as e:
+        print(f"No se pudo cargar confidence engine: {e}")
+
     # Agent
     return RAGAgent(
         retriever=retriever,
         llm=llm,
         prompt_builder=prompt_builder,
+        confidence_engine=confidence_engine,
     )
