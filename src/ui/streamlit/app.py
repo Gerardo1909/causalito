@@ -52,33 +52,27 @@ if question := st.chat_input("Pregunta sobre inferencia causal..."):
     st.chat_message("user").markdown(question)
 
     with st.chat_message("assistant"):
-        # Mostrar status del retrieval
-        with st.status("Buscando contexto relevante...", expanded=False) as status:
-            try:
-                agent = get_agent()
-                docs, sources, scores = agent.retriever.retrieve(question)
-                status.update(
-                    label=f"Recuperados {len(docs)} fragmentos de {len(sources)} fuentes"
-                )
-
-                if docs:
-                    prompt = agent.prompt_builder.build(question, docs)
-                    answer = agent.llm.generate(prompt)
-                else:
-                    answer = (
-                        "No encontre informacion relevante en los documentos indexados."
-                    )
-                    sources = []
-            except Exception as e:
-                answer = f"Error al procesar: {str(e)}"
-                sources = []
-                status.update(label="Error", state="error")
+        try:
+            agent = get_agent()
+            answer, sources, confidence_result = agent.answer(question)
+        except Exception as e:
+            answer = f"Error al procesar: {str(e)}"
+            sources = []
+            confidence_result = None
 
         st.markdown(answer)
         if sources:
             with st.expander("Fuentes"):
                 for s in sources:
                     st.markdown(f"- {s}")
+
+        if confidence_result:
+            with st.expander("Confianza de la respuesta"):
+                st.metric(
+                    "Probabilidad de correctitud",
+                    f"{confidence_result.prob_correct:.2%}",
+                )
+                st.caption(f"Decisión: {confidence_result.decision.value}")
 
     st.session_state.messages.append(
         {"role": "assistant", "content": answer, "sources": sources}
